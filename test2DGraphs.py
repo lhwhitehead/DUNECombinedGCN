@@ -8,7 +8,7 @@ import torch_geometric.transforms as T
 
 # We can use a predifined dataset to play around with things.
 transform = T.Cartesian(cat=False)
-dataset = MNISTSuperpixels('mnistDataset/',True,transform=transform)
+dataset = MNISTSuperpixels('../mnistDataset/',True,transform=transform)
 dataset = dataset.shuffle()
 print('Dataset has ' + str(len(dataset)) + ' entries')
 
@@ -25,8 +25,7 @@ data0 = dataset[2].to(device)
 data1 = dataset[9].to(device)
 data2 = dataset[20].to(device)
 myGCN = multiViewGCN(train_loader.dataset.num_node_features).to(device)
-#optimizer = torch.optim.Adam(myGCN.parameters(), lr=0.01, weight_decay=5e-4)
-optimizer = torch.optim.Adam(myGCN.parameters(), lr=0.5, weight_decay=5e-4)
+optimizer = torch.optim.Adam(myGCN.parameters(), lr=0.01, weight_decay=5e-4)
 
 nEpochs = 20
 
