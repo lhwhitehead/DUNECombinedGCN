@@ -61,8 +61,7 @@ class multiViewGCN(torch.nn.Module):
         x = F.relu(self.mlp0(x))
         x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu(self.mlp1(x))
-        x = F.dropout(x, p=0.5, training=self.training)
-        x = F.relu(self.mlp2(x))
+        x = self.mlp2(x)
 
-        return F.softmax(x,dim=-1)
+        return F.log_softmax(x,dim=-1)
 
