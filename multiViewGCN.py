@@ -12,7 +12,7 @@ from torch_geometric.nn import global_mean_pool as gap, global_max_pool as gmp
 #
 
 class multiViewGCN(torch.nn.Module):
-    def __init__(self,nFeatures):
+    def __init__(self,nFeatures,nCategories):
         super(multiViewGCN,self).__init__()
 
         # Convolutions and pooling layers for each input branch
@@ -25,8 +25,8 @@ class multiViewGCN(torch.nn.Module):
 
         # MLP takes merged outputs from the three branches
         self.mlp0 = torch.nn.Linear(3*256,2*256)
-        self.mlp1 = torch.nn.Linear(2*256,256)
-        self.mlp2 = torch.nn.Linear(256,10)
+        self.mlp1 = torch.nn.Linear(2*256,128)
+        self.mlp2 = torch.nn.Linear(128,nCategories)
 
 
     def forward(self,data0,data1,data2):
@@ -51,7 +51,7 @@ class multiViewGCN(torch.nn.Module):
             xs[branch], edges[branch], _, batches[branch], _ = self.pool2s[branch](xs[branch], edges[branch], None, batches[branch])
             x3 = torch.cat([gmp(xs[branch], batches[branch]), gap(xs[branch], batches[branch])], dim=1)
 
-            # We effectively have residual connections from each of the graph convolutions
+            # We effectively have some sort of residual connections from each of the graph convolutions
             xs[branch] = x1 + x2 + x3
             
         # Concatenate the outputs from the three graph branches
@@ -61,7 +61,15 @@ class multiViewGCN(torch.nn.Module):
         x = F.relu(self.mlp0(x))
         x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu(self.mlp1(x))
+        x = F.dropout(x, p=0.5, training=self.training)
         x = self.mlp2(x)
 
-        return F.log_softmax(x,dim=-1)
-
+#        return F.log_softmax(x,dim=-1)
+#        return F.softmax(x,dim=-1)
+#        print("Raw     ",x)
+#        print("Simple  ",x/1000.)
+#        print("Sigmoid ",torch.sigmoid(x))
+#        print("Tanh    ",torch.tanh(x))
+#        print("Softmax ",torch.softmax(x,1))
+#        print("Relu    ",torch.relu(x))
+        return x/1000.
