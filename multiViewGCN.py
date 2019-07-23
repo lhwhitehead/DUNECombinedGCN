@@ -72,4 +72,4 @@ class multiViewGCN(torch.nn.Module):
 #        print("Tanh    ",torch.tanh(x))
 #        print("Softmax ",torch.softmax(x,1))
 #        print("Relu    ",torch.relu(x))
-        return x/1000.
+        return x

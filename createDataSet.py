@@ -59,6 +59,14 @@ class duneGraph:
             split = np.hsplit(elements,self.nodeCoords)
             pos = split[0]
             features = split[1]
+            for i in range(len(features)):
+                if features[i][0] > 1000:
+                    features[i][0] = 1000.
+                features[i][0] = features[i][0] / 1000.
+                if features[i][1] > 10:
+                    features[i][1] = 24.
+                features[i][1] = features[i][1] / 24.
+                #print(features[i][0],features[i][1])
             self.dataFeatures[d] = torch.from_numpy(features)
             self.dataPositions[d] = torch.from_numpy(pos)
             datafiles[d].close();
