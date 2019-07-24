@@ -9,7 +9,7 @@ from otherNet import Net
 import torch.nn.functional as F
 import torch_geometric.transforms as T
 
-# Let's see if we can be reporucable!
+# Let's see if we can be reproducable!
 torch.manual_seed(11)
 
 # Create the DUNE dataset
@@ -33,7 +33,7 @@ for filetype in runtypes:
             data0, data1, data2 = graphLoader.getGraphs()
             keep_graph = True
             if data0.y == 3:
-                if numpy.random.uniform() < 0.4:
+                if numpy.random.uniform() < 0.50:
                     keep_graph = False
 
             if keep_graph == True:
@@ -57,7 +57,7 @@ print("Number of graphs = " + str(len(graphCollection[0])))
 print(graphCount)
 
 # Set the batch size and divide up the training and test graphs
-graphsPerBatch = 1
+graphsPerBatch = 64
 n = len(graphCollection[0]) // 10
 test_size  = n 
 train_size = n*9
@@ -102,6 +102,9 @@ def train():
 def test(loader):
     myGCN.eval()
     correct = 0
+    nEachFlavour = numpy.zeros([4],numpy.float)#[0.,0.,0.,0.]
+    correctEachFlavour = numpy.zeros([4],numpy.float)#[0.,0.,0.,0.]
+
     for data0, data1, data2 in zip(loader[0],loader[1],loader[2]):
         data0 = data0.to(device)
         data1 = data1.to(device)
@@ -115,11 +118,24 @@ def test(loader):
         correct += pred.eq(data0.y).sum().item()
 #        print(pred,data0.y)
 
-    return correct / len(loader[0].dataset)
+        # Specific flavour calculations
+        for single_correct, single_flavour in zip(pred.eq(data0.y),data0.y):
+            nEachFlavour[single_flavour] += 1
+            if single_correct == 1:
+                correctEachFlavour[single_flavour] += 1
+
+    flavourCorrect = correctEachFlavour / (nEachFlavour)
+
+    return correct / len(loader[0].dataset), flavourCorrect
 
 for epoch in range(nEpochs):
     thisloss = train()
-    train_acc = test(train_loader)
-    test_acc = test(test_loader)
+    train_acc,tr_flav_acc = test(train_loader)
+    test_acc,te_flav_acc = test(test_loader)
     print('Epoch: {:03d}, Loss: {:.5f}, Train Acc: {:.5f}, Test Acc: {:.5f}'.
           format(epoch, thisloss, train_acc, test_acc))
+    print('\t Train Acc :: CC numu: {:.5f}, CC nue:  {:.5f}, CC nutau: {:.5f}, NC: {:.5f}'.
+            format(tr_flav_acc[0],tr_flav_acc[1],tr_flav_acc[2],tr_flav_acc[3]))
+    print('\t Test Acc  :: CC numu: {:.5f}, CC nue:  {:.5f}, CC nutau: {:.5f}, NC: {:.5f}'.
+            format(te_flav_acc[0],te_flav_acc[1],te_flav_acc[2],te_flav_acc[3]))
+
