@@ -17,23 +17,23 @@ graphCollection = []
 nGraphs = 0
 graphLimit = 1000000
 
-runtypes = ['nutau','nue','numu']
+runtypes = ['nutau','nue','numu','anutau','anue','anumu']
 graphCount = [0,0,0,0]
 
 for filetype in runtypes: 
-    subdirs = os.listdir("../graphDataset/fromLArSoft/"+filetype)
+    subdirs = os.listdir("../graphDataset/"+filetype)
     for i in range(len(subdirs)):
-        allfiles = os.listdir("../graphDataset/fromLArSoft/"+filetype+"/"+subdirs[i])
+        allfiles = os.listdir("../graphDataset/"+filetype+"/"+subdirs[i])
         for f in range(len(allfiles)):
     
             tokens = allfiles[f].split('_')
             if tokens[2] != '0.gz':
                 continue
-            graphLoader = duneGraph("../graphDataset/fromLArSoft/"+filetype,subdirs[i],tokens[1])
+            graphLoader = duneGraph("../graphDataset/"+filetype,subdirs[i],tokens[1])
             data0, data1, data2 = graphLoader.getGraphs()
             keep_graph = True
             if data0.y == 3:
-                if numpy.random.uniform() < 0.333:
+                if numpy.random.uniform() < 0.4:
                     keep_graph = False
 
             if keep_graph == True:
