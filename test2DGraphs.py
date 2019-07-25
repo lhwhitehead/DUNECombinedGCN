@@ -15,7 +15,7 @@ torch.manual_seed(11)
 # Create the DUNE dataset
 graphCollection = []
 nGraphs = 0
-graphLimit = 1000000
+graphLimit = 100000000
 
 runtypes = ['nutau','nue','numu','anutau','anue','anumu']
 graphCount = [0,0,0,0]
