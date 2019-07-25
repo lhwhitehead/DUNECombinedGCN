@@ -5,7 +5,6 @@ from torch_geometric.data import Data, DataLoader
 from torch_geometric.datasets import MNISTSuperpixels
 from multiViewGCN import multiViewGCN
 from createDataSet import duneGraph
-from otherNet import Net
 import torch.nn.functional as F
 import torch_geometric.transforms as T
 
@@ -73,7 +72,6 @@ train_loader = [DataLoader(graphCollection[0][test_size:test_size+train_size],ba
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 myGCN = multiViewGCN(2,4).to(device)
-#myGCN = Net(train_loader.dataset.num_node_features).to(device)
 optimizer = torch.optim.Adam(myGCN.parameters(), lr=0.0005) #, weight_decay=5e-4)
 
 nEpochs = 20
@@ -89,8 +87,6 @@ def train():
 #        print(data0.y,data1.y,data2.y)
         optimizer.zero_grad()
         out = myGCN(data0,data1,data2)
-#        out = myGCN(data)
-#        loss = F.nll_loss(out, data0.y)
 #        print(out,data0.y)
         loss = loss_func(out, data0.y)
         loss.backward()
