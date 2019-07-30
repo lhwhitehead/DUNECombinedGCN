@@ -12,9 +12,10 @@ from torch_geometric.nn import global_mean_pool as gap, global_max_pool as gmp
 #
 
 class multiViewGCN(torch.nn.Module):
-    def __init__(self,nFeatures,nCategories):
+    def __init__(self,nFeatures,nCategories,device):
         super(multiViewGCN,self).__init__()
 
+        '''
         # Convolutions and pooling layers for each input branch
         self.conv0s = [GraphConv(nFeatures,128),GraphConv(nFeatures,128),GraphConv(nFeatures,128)]
         self.pool0s = [TopKPooling(128, ratio=0.8),TopKPooling(128, ratio=0.8),TopKPooling(128, ratio=0.8)]
@@ -27,7 +28,20 @@ class multiViewGCN(torch.nn.Module):
         self.mlp0 = torch.nn.Linear(3*256,2*256)
         self.mlp1 = torch.nn.Linear(2*256,128)
         self.mlp2 = torch.nn.Linear(128,nCategories)
+        '''
 
+        # Convolutions and pooling layers for each input branch
+        self.conv0s = [GraphConv(nFeatures,128).to(device),GraphConv(nFeatures,128).to(device),GraphConv(nFeatures,128).to(device)]
+        self.pool0s = [TopKPooling(128, ratio=0.8).to(device),TopKPooling(128, ratio=0.8).to(device),TopKPooling(128, ratio=0.8).to(device)]
+        self.conv1s = [GraphConv(128,128).to(device),GraphConv(128,128).to(device),GraphConv(128,128).to(device)]
+        self.pool1s = [TopKPooling(128, ratio=0.8).to(device),TopKPooling(128, ratio=0.8).to(device),TopKPooling(128, ratio=0.8).to(device)]
+        self.conv2s = [GraphConv(128,128).to(device),GraphConv(128,128).to(device),GraphConv(128,128).to(device)]
+        self.pool2s = [TopKPooling(128, ratio=0.8).to(device),TopKPooling(128, ratio=0.8).to(device),TopKPooling(128, ratio=0.8).to(device)]
+
+        # MLP takes merged outputs from the three branches
+        self.mlp0 = torch.nn.Linear(3*256,2*256).to(device)
+        self.mlp1 = torch.nn.Linear(2*256,128).to(device)
+        self.mlp2 = torch.nn.Linear(128,nCategories).to(device)
 
     def forward(self,data0,data1,data2):
 
@@ -39,6 +53,7 @@ class multiViewGCN(torch.nn.Module):
         # Perform separate convolutions for the three graphs. These three branches each replicate the network described
         # in https://arxiv.org/abs/1810.02244 with the exception of the MLP (we merge our three branches first)
         for branch in range(3):
+
             xs[branch] = F.relu(self.conv0s[branch](xs[branch],edges[branch]))
             xs[branch], edges[branch], _, batches[branch], _ = self.pool0s[branch](xs[branch], edges[branch], None, batches[branch])
             x1 = torch.cat([gmp(xs[branch], batches[branch]), gap(xs[branch], batches[branch])], dim=1)
