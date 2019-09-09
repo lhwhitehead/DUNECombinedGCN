@@ -71,7 +71,7 @@ train_loader = [DataLoader(graphCollection[0][test_size:test_size+train_size],ba
         
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-myGCN = multiViewGCN(2,4).to(device)
+myGCN = multiViewGCN(2,4,device)
 optimizer = torch.optim.Adam(myGCN.parameters(), lr=0.0005) #, weight_decay=5e-4)
 
 nEpochs = 20
