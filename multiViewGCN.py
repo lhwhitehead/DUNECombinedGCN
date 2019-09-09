@@ -15,21 +15,6 @@ class multiViewGCN(torch.nn.Module):
     def __init__(self,nFeatures,nCategories,device):
         super(multiViewGCN,self).__init__()
 
-        '''
-        # Convolutions and pooling layers for each input branch
-        self.conv0s = [GraphConv(nFeatures,128),GraphConv(nFeatures,128),GraphConv(nFeatures,128)]
-        self.pool0s = [TopKPooling(128, ratio=0.8),TopKPooling(128, ratio=0.8),TopKPooling(128, ratio=0.8)]
-        self.conv1s = [GraphConv(128,128),GraphConv(128,128),GraphConv(128,128)]
-        self.pool1s = [TopKPooling(128, ratio=0.8),TopKPooling(128, ratio=0.8),TopKPooling(128, ratio=0.8)]
-        self.conv2s = [GraphConv(128,128),GraphConv(128,128),GraphConv(128,128)]
-        self.pool2s = [TopKPooling(128, ratio=0.8),TopKPooling(128, ratio=0.8),TopKPooling(128, ratio=0.8)]
-
-        # MLP takes merged outputs from the three branches
-        self.mlp0 = torch.nn.Linear(3*256,2*256)
-        self.mlp1 = torch.nn.Linear(2*256,128)
-        self.mlp2 = torch.nn.Linear(128,nCategories)
-        '''
-
         # Convolutions and pooling layers for each input branch
         self.conv0s = [GraphConv(nFeatures,128).to(device),GraphConv(nFeatures,128).to(device),GraphConv(nFeatures,128).to(device)]
         self.pool0s = [TopKPooling(128, ratio=0.8).to(device),TopKPooling(128, ratio=0.8).to(device),TopKPooling(128, ratio=0.8).to(device)]
@@ -55,15 +40,15 @@ class multiViewGCN(torch.nn.Module):
         for branch in range(3):
 
             xs[branch] = F.relu(self.conv0s[branch](xs[branch],edges[branch]))
-            xs[branch], edges[branch], _, batches[branch], _ = self.pool0s[branch](xs[branch], edges[branch], None, batches[branch])
+            xs[branch], edges[branch], _, batches[branch], _, _ = self.pool0s[branch](xs[branch], edges[branch], None, batches[branch])
             x1 = torch.cat([gmp(xs[branch], batches[branch]), gap(xs[branch], batches[branch])], dim=1)
 
             xs[branch] = F.relu(self.conv1s[branch](xs[branch],edges[branch]))
-            xs[branch], edges[branch], _, batches[branch], _ = self.pool1s[branch](xs[branch], edges[branch], None, batches[branch])
+            xs[branch], edges[branch], _, batches[branch], _, _ = self.pool1s[branch](xs[branch], edges[branch], None, batches[branch])
             x2 = torch.cat([gmp(xs[branch], batches[branch]), gap(xs[branch], batches[branch])], dim=1)
 
             xs[branch] = F.relu(self.conv2s[branch](xs[branch],edges[branch]))
-            xs[branch], edges[branch], _, batches[branch], _ = self.pool2s[branch](xs[branch], edges[branch], None, batches[branch])
+            xs[branch], edges[branch], _, batches[branch], _, _ = self.pool2s[branch](xs[branch], edges[branch], None, batches[branch])
             x3 = torch.cat([gmp(xs[branch], batches[branch]), gap(xs[branch], batches[branch])], dim=1)
 
             # We effectively have some sort of residual connections from each of the graph convolutions

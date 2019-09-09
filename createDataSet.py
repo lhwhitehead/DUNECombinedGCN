@@ -28,7 +28,7 @@ class truthInfo:
             return 3 # NC
 
 class duneGraph:
-    def __init__(self,path,subdir,event):
+    def __init__(self,path,subdir,event,neighbours=6):
         super(duneGraph,self).__init__()
 
         self.dataFeatures = [0,0,0]
@@ -38,6 +38,8 @@ class duneGraph:
         self.viewNodes = [0,0,0]
         self.nodeFeatures = 0
         self.nodeCoords = 0
+
+        self.neighbours = neighbours
         
         # Get the number of nodes and features from the info file
         infofiles = [open(path+"/"+subdir+"/event_"+event+"_0.info","r"),   
@@ -79,8 +81,8 @@ class duneGraph:
         self.data1 = Data(x=self.dataFeatures[1],pos=self.dataPositions[1],y=y)
         self.data2 = Data(x=self.dataFeatures[2],pos=self.dataPositions[2],y=y)
 
-        # Use the KNNGraph to calculate our edges - request the default six nearest neighbours
-        edgeFinder = KNNGraph(k=6)
+        # Use the KNNGraph to calculate our edges - request self.neighbours edges per node
+        edgeFinder = KNNGraph(k=self.neighbours)
         self.data0 = edgeFinder(self.data0)
         self.data1 = edgeFinder(self.data1)
         self.data2 = edgeFinder(self.data2)

@@ -2,7 +2,6 @@ import os
 import numpy
 import torch
 from torch_geometric.data import Data, DataLoader
-from torch_geometric.datasets import MNISTSuperpixels
 from multiViewGCN import multiViewGCN
 from createDataSet import duneGraph
 import torch.nn.functional as F
@@ -14,7 +13,10 @@ torch.manual_seed(11)
 # Create the DUNE dataset
 graphCollection = []
 nGraphs = 0
-graphLimit = 100000000
+graphLimit = 10000000
+
+# Form edges between a node and the <neighbours> closest nodes
+neighbours = 6
 
 runtypes = ['nutau','nue','numu','anutau','anue','anumu']
 graphCount = [0,0,0,0]
@@ -28,7 +30,7 @@ for filetype in runtypes:
             tokens = allfiles[f].split('_')
             if tokens[2] != '0.gz':
                 continue
-            graphLoader = duneGraph("../graphDataset/"+filetype,subdirs[i],tokens[1])
+            graphLoader = duneGraph("../graphDataset/"+filetype,subdirs[i],tokens[1],neighbours)
             data0, data1, data2 = graphLoader.getGraphs()
             keep_graph = True
             if data0.y == 3:
