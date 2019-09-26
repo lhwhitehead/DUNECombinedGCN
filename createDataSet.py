@@ -16,6 +16,8 @@ class truthInfo:
         self.pions        = 0
         self.pizeros      = 0
         self.neutrons     = 0
+	
+        self.true_energy  = 0.
 
     def getFlavour(self):
         if self.interaction < 4: 
@@ -97,6 +99,8 @@ class duneGraph:
             # Only need these lines from one of the three files
             if counter == 0:
                 self.truthInfo.interaction = int(lines[0])
+                self.true_energy = float(lines[1])
+
                 self.truthInfo.pdg = int(lines[7])
                 self.truthInfo.protons = int(lines[8])
                 self.truthInfo.pions = int(lines[9])
@@ -117,3 +121,8 @@ class duneGraph:
     # Return the torch_geometric.data objects for the three views
     def getGraphs(self):
         return self.data0, self.data1, self.data2
+
+    # Return the true neutrino energy
+    def getTrueEnergy(self):
+        return self.true_energy
+

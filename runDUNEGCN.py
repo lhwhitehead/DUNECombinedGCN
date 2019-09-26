@@ -3,84 +3,61 @@ import numpy
 import torch
 from torch_geometric.data import Data, DataLoader
 from multiViewGCN import multiViewGCN
-from createDataSet import duneGraph
+from createTorchDataSet import DuneGCNDataset
+from createTorchDataSet import DuneGCNProcess
+from torch_geometric.nn import DataParallel
 import torch.nn.functional as F
 import torch_geometric.transforms as T
 
 # Let's see if we can be reproducable!
 torch.manual_seed(11)
 
-# Create the DUNE dataset
-graphCollection = []
-nGraphs = 0
-graphLimit = 100000
-subdirlimit=10
+# Load our dataset
+processor = DuneGCNProcess('../graphs/',shuffle=True, energy_cut=20.0)
+processor.create_datasets()
 
-# Form edges between a node and the <neighbours> closest nodes
-neighbours = 6
+datasets = [processor.dataset_view0,processor.dataset_view1,processor.dataset_view2]
 
-runtypes = ['nutau','nue','numu','anutau','anue','anumu']
-graphCount = [0,0,0,0]
+# Use 10% for testing
+test_frac = 0.1
+ntest = int(len(datasets[0])*test_frac)
+test_size = ntest
+train_size = ntest*9
 
-for filetype in runtypes: 
-    subdirs = os.listdir("../graphs/"+filetype)
-    sdlimit=subdirlimit
-    if(filetype=='nutau' or filetype=='anutau'):
-        sdlimit=4*subdirlimit
-    for i in range(len(subdirs)):
-        if i > sdlimit:
-            break
-        allfiles = os.listdir("../graphs/"+filetype+"/"+subdirs[i])
-        for f in range(len(allfiles)):
-    
-            tokens = allfiles[f].split('_')
-            if tokens[2] != '0.gz':
-                continue
-            graphLoader = duneGraph("../graphs/"+filetype,subdirs[i],tokens[1],neighbours)
-            data0, data1, data2 = graphLoader.getGraphs()
-            keep_graph = True
-            if data0.y == 3:
-                if numpy.random.uniform() < 0.45:
-                    keep_graph = False
-
-            if keep_graph == True:
-                nGraphs += 1
-                graphCollection.append([data0,data1,data2])
-                graphCount[data0.y] += 1
-    
-            if nGraphs >= graphLimit:
-                break
-        if nGraphs >= graphLimit:
-            break
-    if nGraphs >= graphLimit:
-        break
-
-# Since we will likely load numu / nue / nutau sequentially then we should shuffle them
-numpy.random.shuffle(graphCollection)
-
-# We need to transpose our matrix so that each row contains one view
-graphCollection = list(map(list, zip(*graphCollection)))
-print("Number of graphs = " + str(len(graphCollection[0])))
-print(graphCount)
+print('Number of graphs = ',len(datasets[0]))
+print('Number of test graphs = ',test_size)
+print('Number of train graphs =',train_size)
+#print('First tests =',datasets[0][0],datasets[1][0],datasets[2][0])
+#print('Last test =',datasets[0][test_size-1],datasets[1][test_size-1],datasets[2][test_size-1])
+#print('First train =',datasets[0][test_size],datasets[1][test_size],datasets[2][test_size])
+#print('Last train =',datasets[0][train_size+test_size],datasets[1][train_size+test_size],datasets[2][train_size+test_size])
 
 # Set the batch size and divide up the training and test graphs
 graphsPerBatch = 64
-n = len(graphCollection[0]) // 10
-test_size  = n 
-train_size = n*9
 
+# Make data loaders for the samples
+print('Making data loaders using batch size ',graphsPerBatch)
 # Set up all of the test and train data loaders
-test_loader  = [DataLoader(graphCollection[0][0:test_size-1],batch_size=graphsPerBatch),
-                DataLoader(graphCollection[1][0:test_size-1],batch_size=graphsPerBatch),
-                DataLoader(graphCollection[2][0:test_size-1],batch_size=graphsPerBatch)]
-train_loader = [DataLoader(graphCollection[0][test_size:test_size+train_size],batch_size=graphsPerBatch),
-                DataLoader(graphCollection[1][test_size:test_size+train_size],batch_size=graphsPerBatch),
-                DataLoader(graphCollection[2][test_size:test_size+train_size],batch_size=graphsPerBatch)]
+test_loader  = [DataLoader(datasets[0][0:test_size-1],batch_size=graphsPerBatch),
+                DataLoader(datasets[1][0:test_size-1],batch_size=graphsPerBatch),
+                DataLoader(datasets[2][0:test_size-1],batch_size=graphsPerBatch)]
+train_loader = [DataLoader(datasets[0][test_size:test_size+train_size],batch_size=graphsPerBatch),
+                DataLoader(datasets[1][test_size:test_size+train_size],batch_size=graphsPerBatch),
+                DataLoader(datasets[2][test_size:test_size+train_size],batch_size=graphsPerBatch)]
 
-graphCollection=0        
+#print('Can we use GPU? ',torch.cuda.is_available())
+# Select which GPUs we can see
+#os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3"
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#print(device.current_device())
 myGCN = multiViewGCN(2,4,device)
+
+# Use multiple GPUs if we can
+if torch.cuda.device_count() > 1:
+    print("Let's use", torch.cuda.device_count(), "GPUs!")
+    myGCN = DataParallel(myGCN)
+
 optimizer = torch.optim.Adam(myGCN.parameters(), lr=0.0005) #, weight_decay=5e-4)
 
 nEpochs = 20
@@ -89,6 +66,7 @@ def train():
     myGCN.train()
     loss_all = 0
     loss_func = torch.nn.CrossEntropyLoss()
+
     for data0, data1, data2 in zip(train_loader[0],train_loader[1],train_loader[2]):
         data0 = data0.to(device)
         data1 = data1.to(device)
@@ -133,6 +111,7 @@ def test(loader):
 
     return correct / len(loader[0].dataset), flavourCorrect
 
+print('Starting training...')
 for epoch in range(nEpochs):
     thisloss = train()
     train_acc,tr_flav_acc = test(train_loader)

@@ -26,7 +26,8 @@ class multiViewGCN(torch.nn.Module):
         # MLP takes merged outputs from the three branches
         self.mlp0 = torch.nn.Linear(3*256,2*256).to(device)
         self.mlp1 = torch.nn.Linear(2*256,128).to(device)
-        self.mlp2 = torch.nn.Linear(128,nCategories).to(device)
+        self.mlp2 = torch.nn.Linear(128,64).to(device)
+        self.mlp3 = torch.nn.Linear(64,nCategories).to(device)
 
     def forward(self,data0,data1,data2):
 
@@ -62,7 +63,9 @@ class multiViewGCN(torch.nn.Module):
         x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu(self.mlp1(x))
         x = F.dropout(x, p=0.5, training=self.training)
-        x = self.mlp2(x)
+        x = F.relu(self.mlp2(x))
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = self.mlp3(x)
 
 #        return F.log_softmax(x,dim=-1)
 #        return F.softmax(x,dim=-1)
